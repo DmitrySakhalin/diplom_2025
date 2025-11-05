@@ -7,9 +7,7 @@ User = get_user_model()
 
 class BackendEndpointsTest(APITestCase):
     def setUp(self):
-        # Создайте пользователя с актуальным паролем
         self.user = User.objects.create_superuser(email='dmitry-pack@mail.ru', password='yourpassword')
-        # force_authenticate для прохождения аутентификации
         self.client.force_authenticate(user=self.user)
 
     def test_partner_update(self):

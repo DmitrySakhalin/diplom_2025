@@ -3,11 +3,6 @@ from backend.models import Shop, Category, Product, ProductInfo, Parameter, Prod
 
 
 def load_products_from_yaml(file_path, user):
-    """
-    Функция загрузки товаров из YAML файла.
-    file_path: полный путь к YAML файлу
-    user: пользователь (Postavshhik), для связи с магазином
-    """
     with open(file_path, 'r', encoding='utf-8') as f:
         data = load_yaml(f, Loader=Loader)
 
