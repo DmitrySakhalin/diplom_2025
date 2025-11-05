@@ -9,7 +9,7 @@ from backend.models import (
     User, Shop, Category, Product, ProductInfo, Parameter, ProductParameter,
     Order, OrderItem, Contact, ConfirmEmailToken,
 )
-from backend.services import load_products_from_yaml  # Импорт вашей функции загрузки из services.py
+from backend.services import load_products_from_yaml
 import os
 from django.conf import settings
 
@@ -40,7 +40,6 @@ class ShopAdmin(admin.ModelAdmin):
     list_filter = ('state',)
     search_fields = ('name', 'user__email')
 
-    # Пример кастомной кнопки для вызова ручного импорта файлов (потребует доработки url и view)
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
@@ -62,7 +61,6 @@ class ShopAdmin(admin.ModelAdmin):
             self.message_user(request, "Магазин не найден", level=messages.ERROR)
             return redirect('..')
 
-        # Пример: загрузить один из файлов из папки data по имени shop1.yaml
         file_path = os.path.join(settings.BASE_DIR, 'data', 'shop1.yaml')
         try:
             load_products_from_yaml(file_path, shop.user)
