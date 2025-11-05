@@ -1,13 +1,15 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.forms.models import BaseInlineFormSet
 from django.utils.html import format_html
 from django.urls import path
 from django.shortcuts import redirect
 from django.contrib import messages
+from django import forms
 
 from backend.models import (
     User, Shop, Category, Product, ProductInfo, Parameter, ProductParameter,
-    Order, OrderItem, Contact, ConfirmEmailToken,
+    Order, OrderItem, Contact, ConfirmEmailToken
 )
 from backend.services import load_products_from_yaml
 import os
@@ -16,9 +18,6 @@ from django.conf import settings
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    """
-    Панель управления пользователями
-    """
     model = User
 
     fieldsets = (
@@ -78,9 +77,16 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'category')
+    list_display = ('id', 'name', 'category', 'get_price')
     list_filter = ('category',)
     search_fields = ('name',)
+
+    def get_price(self, obj):
+        prices = obj.product_infos.values_list('price', flat=True)
+        if prices:
+            return min(prices)
+        return '-'
+    get_price.short_description = 'Цена'
 
 
 @admin.register(ProductInfo)
@@ -88,6 +94,9 @@ class ProductInfoAdmin(admin.ModelAdmin):
     list_display = ('id', 'product', 'shop', 'price', 'quantity')
     list_filter = ('shop', 'product__category')
     search_fields = ('product__name',)
+
+    def __str__(self):
+        return f"{self.product.name} ({self.shop.name}) - {self.price} руб."
 
 
 @admin.register(Parameter)
@@ -107,18 +116,61 @@ class ProductParameterAdmin(admin.ModelAdmin):
     search_fields = ('parameter__name',)
 
 
+class OrderItemForm(forms.ModelForm):
+    class Meta:
+        model = OrderItem
+        fields = ['product_info', 'quantity']
+
+class OrderItemInline(admin.TabularInline):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Если новый объект (объект заказа ещё не создан), то первая extra форма quantity=0
+        # для остальных extra форм quantity=1
+        for i, form in enumerate(self.forms):
+            if not form.instance.pk:
+                if self.instance.pk is None and i == 0:
+                    # Новый заказ, первая форма extra - quantity=0
+                    form.initial['quantity'] = 0
+                else:
+                    # Добавляем новые позиции - quantity=1
+                    form.initial['quantity'] = 1
+
+
+class OrderItemInlineFormSet(BaseInlineFormSet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for i, form in enumerate(self.forms):
+            if not form.instance.pk:
+                if self.instance.pk is None and i == 0:
+                    form.initial['quantity'] = 0
+                else:
+                    form.initial['quantity'] = 1
+
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
-    extra = 0
-    readonly_fields = ('product_info', 'quantity')
-
+    formset = OrderItemInlineFormSet
+    fields = ('product_info', 'quantity')
+    extra = 1
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'state', 'dt', 'total_price')
+    list_display = ('id', 'user', 'state', 'dt', 'get_total_price')
+    readonly_fields = ('get_total_price',)
     list_filter = ('state', 'dt')
     search_fields = ('user__email',)
     inlines = [OrderItemInline]
+
+    def get_total_price(self, obj):
+        return obj.total_price
+    get_total_price.short_description = 'Общая сумма заказа'
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        order = form.instance
+        total = sum(item.product_info.price * item.quantity for item in order.ordered_items.all())
+        if order.total_price != total:
+            order.total_price = total
+            order.save(update_fields=['total_price'])
 
 
 @admin.register(OrderItem)

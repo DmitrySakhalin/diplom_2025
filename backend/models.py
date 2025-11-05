@@ -133,6 +133,9 @@ class ProductInfo(models.Model):
             models.UniqueConstraint(fields=['product', 'shop', 'external_id'], name='unique_product_info'),
         ]
 
+    def __str__(self):
+        return f"{self.product.name} — {self.shop.name} (цена: {self.price})"
+
 
 class Parameter(models.Model):
     name = models.CharField(max_length=40, verbose_name='Название')
@@ -191,7 +194,13 @@ class Order(models.Model):
     dt = models.DateTimeField(auto_now_add=True)
     state = models.CharField(verbose_name='Статус', choices=State.choices, max_length=15, default=State.NEW)
     contact = models.ForeignKey(Contact, verbose_name='Контакт', blank=True, null=True, on_delete=models.CASCADE)
-    total_price = models.DecimalField(verbose_name='Общая сумма заказа', max_digits=10, decimal_places=2, default=0)
+
+    @property
+    def total_price(self):
+        total = self.ordered_items.aggregate(
+            total=models.Sum(models.F('product_info__price') * models.F('quantity'))
+        )['total'] or 0
+        return total
 
     class Meta:
         verbose_name = 'Заказ'
@@ -201,18 +210,12 @@ class Order(models.Model):
     def __str__(self):
         return f'Заказ {self.id} от {self.dt}'
 
-    def update_total_price(self):
-        total = self.ordered_items.aggregate(
-            total=models.Sum(models.F('product_info__price') * models.F('quantity'))
-        )['total'] or 0
-        self.total_price = total
-        self.save()
 
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, verbose_name='Заказ', related_name='ordered_items', on_delete=models.CASCADE)
     product_info = models.ForeignKey(ProductInfo, verbose_name='Информация о продукте', related_name='ordered_items', on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(verbose_name='Количество')
+    quantity = models.PositiveIntegerField(verbose_name='Количество', default=0)  # <-- default=0
 
     class Meta:
         verbose_name = 'Заказанная позиция'
