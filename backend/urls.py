@@ -1,6 +1,7 @@
 
 from django.urls import path, include
 from django_rest_passwordreset.views import reset_password_request_token, reset_password_confirm
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from backend.views import (
     PartnerUpdate, RegisterAccount, LoginAccount, CategoryView, ShopView,
@@ -26,4 +27,6 @@ urlpatterns = [
     path('products/', ProductInfoView.as_view(), name='products'),
     path('basket/', BasketView.as_view(), name='basket'),
     path('order/', OrderView.as_view(), name='order'),
+    path('schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='backend:schema'), name='docs'),
 ]
