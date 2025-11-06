@@ -144,15 +144,11 @@ class OrderItemForm(forms.ModelForm):
 class OrderItemInline(admin.TabularInline):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Если новый объект (объект заказа ещё не создан), то первая extra форма quantity=0
-        # для остальных extra форм quantity=1
         for i, form in enumerate(self.forms):
             if not form.instance.pk:
                 if self.instance.pk is None and i == 0:
-                    # Новый заказ, первая форма extra - quantity=0
                     form.initial['quantity'] = 0
                 else:
-                    # Добавляем новые позиции - quantity=1
                     form.initial['quantity'] = 1
 
 
