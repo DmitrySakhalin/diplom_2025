@@ -19,18 +19,38 @@ from django.conf import settings
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     model = User
-
     fieldsets = (
         (None, {'fields': ('email', 'password', 'type')}),
         ('Personal info', {'fields': ('first_name', 'last_name', 'company', 'position')}),
-        ('Permissions', {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
-        }),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
     )
     list_display = ('email', 'first_name', 'last_name', 'type', 'is_staff', 'is_active')
     list_filter = ('type', 'is_staff', 'is_active')
     search_fields = ('email', 'first_name', 'last_name')
+
+
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    fields = ('product_info', 'quantity')
+    extra = 1
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'state', 'dt', 'total_price')
+    readonly_fields = ('total_price',)
+    inlines = [OrderItemInline]
+
+    def save_formset(self, request, form, formset, change):
+        formset.save()
+
+        order = form.instance
+        total = order.calculate_total_price()
+
+        if order.total_price != total:
+            order.total_price = total
+            order.save(update_fields=['total_price'])
 
 
 @admin.register(Shop)
@@ -151,27 +171,6 @@ class OrderItemInline(admin.TabularInline):
     formset = OrderItemInlineFormSet
     fields = ('product_info', 'quantity')
     extra = 1
-
-@admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'state', 'dt', 'get_total_price')
-    readonly_fields = ('get_total_price',)
-    list_filter = ('state', 'dt')
-    search_fields = ('user__email',)
-    inlines = [OrderItemInline]
-
-    def get_total_price(self, obj):
-        return obj.total_price
-    get_total_price.short_description = 'Общая сумма заказа'
-
-    def save_related(self, request, form, formsets, change):
-        super().save_related(request, form, formsets, change)
-        order = form.instance
-        total = sum(item.product_info.price * item.quantity for item in order.ordered_items.all())
-        if order.total_price != total:
-            order.total_price = total
-            order.save(update_fields=['total_price'])
-
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):

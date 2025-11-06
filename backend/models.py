@@ -68,7 +68,8 @@ class User(AbstractUser):
     type = models.CharField(verbose_name='Тип пользователя', choices=USER_TYPE_CHOICES, max_length=5, default='buyer')
 
     def __str__(self):
-        return f'{self.first_name} {self.last_name}'
+        full_name = f"{self.first_name} {self.last_name}".strip()
+        return full_name if full_name else self.email
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -194,22 +195,13 @@ class Order(models.Model):
     dt = models.DateTimeField(auto_now_add=True)
     state = models.CharField(verbose_name='Статус', choices=State.choices, max_length=15, default=State.NEW)
     contact = models.ForeignKey(Contact, verbose_name='Контакт', blank=True, null=True, on_delete=models.CASCADE)
+    total_price = models.PositiveIntegerField(verbose_name='Общая сумма заказа', default=0)
 
-    @property
-    def total_price(self):
+    def calculate_total_price(self):
         total = self.ordered_items.aggregate(
             total=models.Sum(models.F('product_info__price') * models.F('quantity'))
         )['total'] or 0
         return total
-
-    class Meta:
-        verbose_name = 'Заказ'
-        verbose_name_plural = "Список заказов"
-        ordering = ('-dt',)
-
-    def __str__(self):
-        return f'Заказ {self.id} от {self.dt}'
-
 
 
 class OrderItem(models.Model):
