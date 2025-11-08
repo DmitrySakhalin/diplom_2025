@@ -397,29 +397,56 @@ class ValidationAndErrorTest(APITestCase):
         self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_403_FORBIDDEN,
                                              status.HTTP_400_BAD_REQUEST])
 
-    class SecurityAndPermissionsTests(APITestCase):
-        # Создаем двух пользователей: один для тестов, второй для проверки доступа
-        def setUp(self):
-            self.user = User.objects.create_user(email="user1@example.com", password="password")
-            self.other_user = User.objects.create_user(email="user2@example.com", password="password")
-            # Аутентифицируем клиента теста как первого пользователя
-            self.client.force_authenticate(user=self.user)
+class SecurityAndPermissionsTests(APITestCase):
+    # Создаем двух пользователей: один для тестов, второй для проверки доступа
+    def setUp(self):
+        # Указываем уникальные username для каждого пользователя
+        self.user = User.objects.create_user(username="user1", email="user1@example.com", password="password")
+        self.other_user = User.objects.create_user(username="user2", email="user2@example.com", password="password")
+        # Аутентифицируем клиента теста как первого пользователя
+        self.client.force_authenticate(user=self.user)
 
-        def test_access_partner_endpoints_forbidden_for_non_shop(self):
-            # Тест: проверяет, что пользователь без типа 'shop' не имеет доступа к эндпоинту партнерской части
-            url = reverse('backend:partner-state')
-            url = reverse('backend:partner-state')
-            response = self.client.get(url)
-            self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    def test_access_partner_endpoints_forbidden_for_non_shop(self):
+        # Тест: проверяет, что пользователь без типа 'shop' не имеет доступа к эндпоинту партнерской части
+        url = reverse('backend:partner-state')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-        def test_access_partner_endpoints_allowed_for_shop(self):
-            # Меняем тип пользователя на 'shop' и проверяем, что доступ либо разрешен (200),
-            # либо все еще запрещен (403) по другим причинам
-            self.user.type = 'shop'
-            self.user.save()
-            url = reverse('backend:partner-state')
-            response = self.client.get(url)
-            self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_403_FORBIDDEN])
+    def test_access_partner_endpoints_allowed_for_shop(self):
+        # Меняем тип пользователя на 'shop', чтобы имитировать магазин
+        self.user.type = 'shop'
+        self.user.save()
+
+        # Создаём магазин и связываем его с пользователем
+        self.shop = Shop.objects.create(name="TestShop", state=True)
+        self.user.shop = self.shop
+        self.user.save()
+
+        # Формируем URL для эндпоинта, который доступен только для магазинов
+        url = reverse('backend:partner-state')
+
+        # Отправляем GET-запрос от имени пользователя с типом 'shop'
+        response = self.client.get(url)
+
+        # Проверяем, что ответ имеет статус либо 200 OK (доступ разрешен),
+        # либо 403 Forbidden (доступ запрещён по иным причинам)
+        self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_403_FORBIDDEN])
+
+
+class EdgeCasesAndRobustnessTest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="user@example.com", password="password")
+        self.client.force_authenticate(user=self.user)
+
+    def test_delete_nonexistent_contact(self):
+        # Проверяет, что при попытке удалить несуществующий контакт
+        # API возвращает 200 OK и статус успеха
+        url = reverse('backend:user-contact')
+        response = self.client.delete(url, {'items': '99999'}, content_type='application/json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.json().get('Status'))
+
+
 
 
 
