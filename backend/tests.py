@@ -16,6 +16,75 @@ from unittest.mock import patch
 
 User = get_user_model()
 
+
+class ServicesTest(TestCase):
+    def test_load_products_from_yaml_creates_objects(self):
+        user = User.objects.create_user(email="testuser@example.com", password="pass")
+
+        yaml_content = '''
+        shop: TestShop
+        categories:
+          - id: 1
+            name: Category1
+        goods:
+          - id: 1
+            name: Product1
+            category: 1
+            price: 100
+            price_rrc: 150
+            quantity: 10
+            model: Model1
+            parameters:
+              color: red
+        '''
+
+        with tempfile.NamedTemporaryFile("w+", delete=True) as tmpfile:
+            tmpfile.write(yaml_content)
+            tmpfile.flush()
+
+            load_products_from_yaml(tmpfile.name, user)
+
+        # Assertions проверяют корректное создание и связь объектов
+        shop = Shop.objects.get(name="TestShop")
+        assert shop.user == user
+
+        category = Category.objects.get(id=1)
+        assert category.name == "Category1"
+        assert shop in category.shops.all()
+
+        product = Product.objects.get(name="Product1")
+        product_info = ProductInfo.objects.get(product=product, shop=shop)
+        assert product_info.price == 100
+
+        param = Parameter.objects.get(name="color")
+        product_param = ProductParameter.objects.get(product_info=product_info, parameter=param)
+        self.assertEqual(product_param.value, "red")
+
+
+    def test_old_productinfo_deleted_before_import(self):
+        user = User.objects.create_user(email="test2@example.com", password="pass")
+        shop = Shop.objects.create(name="OtherShop", user=user)
+        category = Category.objects.create(name="SomeCategory")
+        product = Product.objects.create(name="OldProduct", category=category)
+        old_product_info = ProductInfo.objects.create(
+            product=product, shop=shop, quantity=5, price=50,
+            price_rrc=60, model='OldModel', external_id=999
+        )
+
+        yaml_content = """
+        shop: OtherShop
+        categories: []
+        goods: []
+        """
+        with tempfile.NamedTemporaryFile("w+", delete=True) as tmpfile:
+            tmpfile.write(yaml_content)
+            tmpfile.flush()
+
+            load_products_from_yaml(tmpfile.name, user)
+
+        self.assertEqual(ProductInfo.objects.filter(id=old_product_info.id).count(), 0)
+
+
 class BackendEndpointsTest(APITestCase):
     def setUp(self):
         # Создаём суперпользователя и аутентифицируемся для доступа к защищённым эндпойнтам
