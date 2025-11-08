@@ -31,3 +31,4 @@ def load_products_from_yaml(file_path, user):
         for name, value in item.get('parameters', {}).items():
             param_obj, _ = Parameter.objects.get_or_create(name=name)
             ProductParameter.objects.create(product_info=product_info, parameter=param_obj, value=value)
+

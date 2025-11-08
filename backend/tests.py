@@ -1,18 +1,20 @@
 import json
-
+import tempfile
+from backend.services import load_products_from_yaml
 from django.core import mail
 from django.urls import reverse
 from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-from backend.models import Contact, ProductInfo, Order, OrderItem, Shop, Category, User, ConfirmEmailToken
+from backend.models import Contact, ProductInfo, Order, OrderItem, Shop, Category, User, ConfirmEmailToken, Product, \
+    Parameter, ProductParameter
 from rest_framework.authtoken.models import Token
 from backend.forms import LoginForm, RegisterForm, ContactForm, OrderConfirmForm
 from unittest.mock import patch
 
-User = get_user_model()
 
+User = get_user_model()
 
 class BackendEndpointsTest(APITestCase):
     def setUp(self):
