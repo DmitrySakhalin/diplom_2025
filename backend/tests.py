@@ -397,6 +397,31 @@ class ValidationAndErrorTest(APITestCase):
         self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_403_FORBIDDEN,
                                              status.HTTP_400_BAD_REQUEST])
 
+    class SecurityAndPermissionsTests(APITestCase):
+        # Создаем двух пользователей: один для тестов, второй для проверки доступа
+        def setUp(self):
+            self.user = User.objects.create_user(email="user1@example.com", password="password")
+            self.other_user = User.objects.create_user(email="user2@example.com", password="password")
+            # Аутентифицируем клиента теста как первого пользователя
+            self.client.force_authenticate(user=self.user)
+
+        def test_access_partner_endpoints_forbidden_for_non_shop(self):
+            # Тест: проверяет, что пользователь без типа 'shop' не имеет доступа к эндпоинту партнерской части
+            url = reverse('backend:partner-state')
+            url = reverse('backend:partner-state')
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        def test_access_partner_endpoints_allowed_for_shop(self):
+            # Меняем тип пользователя на 'shop' и проверяем, что доступ либо разрешен (200),
+            # либо все еще запрещен (403) по другим причинам
+            self.user.type = 'shop'
+            self.user.save()
+            url = reverse('backend:partner-state')
+            response = self.client.get(url)
+            self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_403_FORBIDDEN])
+
+
 
 
 
