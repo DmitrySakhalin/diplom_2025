@@ -19,6 +19,8 @@ User = get_user_model()
 
 class ServicesTest(TestCase):
     def test_load_products_from_yaml_creates_objects(self):
+        # Тест: проверка создания объектов из YAML файла
+        # Создает магазин, категории, товары, параметры товаров и связывает их корректно
         user = User.objects.create_user(email="testuser@example.com", password="pass")
 
         yaml_content = '''
@@ -62,6 +64,8 @@ class ServicesTest(TestCase):
 
 
     def test_old_productinfo_deleted_before_import(self):
+        # Тест: проверяет удаление старой информации о продукте
+        # Если в YAML файл нет товаров, старая ProductInfo должна быть удалена
         user = User.objects.create_user(email="test2@example.com", password="pass")
         shop = Shop.objects.create(name="OtherShop", user=user)
         category = Category.objects.create(name="SomeCategory")
