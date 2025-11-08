@@ -351,6 +351,10 @@ class ImportProductsTest(APITestCase):
         response = self.client.post(self.url, data={'url': 'http://example.com/fake.yaml'}, format='json')
         self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST])
 
+class SignalsAndEmailTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="user@example.com", password="pass")
+
     def test_confirmation_email_sent_on_user_creation(self):
         # Тест: Проверяет, что при создании нового пользователя с неактивным статусом
         #       отправляется email с токеном подтверждения и что токен создан в базе.
@@ -360,5 +364,16 @@ class ImportProductsTest(APITestCase):
         self.assertEqual(token_count, 1)
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("Confirmation Token", mail.outbox[0].subject)
+
+    def test_password_reset_email_sent(self):
+        #Тест: попытка сбросить пароль пользователя:
+        from django_rest_passwordreset.tokens import get_token_generator
+        mail.outbox = []  # очистить почтовый ящик перед тестом
+        token = get_token_generator().generate_token()
+        mail.send_mail('Password Reset Token', token, None, [self.user.email])
+        self.assertEqual(len(mail.outbox), 1)
+
+
+
 
 
