@@ -446,6 +446,15 @@ class EdgeCasesAndRobustnessTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.json().get('Status'))
 
+    def test_add_order_item_invalid_data(self):
+        # Тест: Проверяет добавление товара в корзину с некорректными данными
+        # (нецелочисленный ID продукта и отрицательное количество)
+        # Ожидаемый результат — ошибка валидации и статус 400 Bad Request от API
+        url = reverse('backend:basket')
+        items = [{'product_info': 'not_int', 'quantity': -1}]
+        response = self.client.post(url, {'items': json.dumps(items)})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
 
 
 
