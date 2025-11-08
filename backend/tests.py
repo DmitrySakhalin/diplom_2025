@@ -1,4 +1,6 @@
 import json
+
+from django.core import mail
 from django.urls import reverse
 from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
@@ -348,5 +350,15 @@ class ImportProductsTest(APITestCase):
 
         response = self.client.post(self.url, data={'url': 'http://example.com/fake.yaml'}, format='json')
         self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST])
+
+    def test_confirmation_email_sent_on_user_creation(self):
+        # Тест: Проверяет, что при создании нового пользователя с неактивным статусом
+        #       отправляется email с токеном подтверждения и что токен создан в базе.
+        mail.outbox = []  # очистить почтовый ящик перед тестом
+        user = User.objects.create(email="newuser@example.com", username="uniqueusername", password="pass", is_active=False)
+        token_count = ConfirmEmailToken.objects.filter(user=user).count()
+        self.assertEqual(token_count, 1)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Confirmation Token", mail.outbox[0].subject)
 
 
