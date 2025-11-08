@@ -1,3 +1,4 @@
+from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.request import Request
@@ -21,7 +22,7 @@ from yaml import load as load_yaml, Loader
 from backend.models import Shop, Category, ProductInfo, Parameter, ProductParameter, Order, OrderItem, Contact, ConfirmEmailToken, Product
 from backend.serializers import (
     UserSerializer, CategorySerializer, ShopSerializer, ProductInfoSerializer,
-    OrderItemSerializer, OrderSerializer, ContactSerializer
+    OrderItemSerializer, OrderSerializer, ContactSerializer, OrderConfirmSerializer
 )
 from backend.signals import new_user_registered, new_order
 from backend.services import load_products_from_yaml
@@ -34,7 +35,10 @@ class RegisterAccount(APIView):
     def post(self, request: Request):
         required_fields = {'first_name', 'last_name', 'email', 'password', 'company', 'position'}
         if not required_fields.issubset(request.data):
-            return Response({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+            return Response(
+                {'Status': False, 'Errors': 'Не указаны все необходимые аргументы'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             validate_password(request.data['password'])
@@ -386,16 +390,16 @@ class OrderView(APIView):
         serializer = OrderSerializer(orders, many=True)
         return Response(serializer.data)
 
-    def post(self, request: Request):
-        if {'id', 'contact'}.issubset(request.data):
-            order_id = request.data['id']
-            contact_id = request.data['contact']
-            if str(order_id).isdigit():
-                try:
-                    updated = Order.objects.filter(user=request.user, id=order_id).update(contact_id=contact_id, state='new')
-                except IntegrityError:
-                    return JsonResponse({'Status': False, 'Errors': 'Неправильно указаны аргументы'})
-                if updated:
-                    new_order.send(sender=self.__class__, user_id=request.user.id)
-                    return JsonResponse({'Status': True})
-        return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
+    def post(self, request):
+        serializer = OrderConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)  # вызывает ValidationError и возвращает 400, если данные некорректны
+
+        order_id = serializer.validated_data['id']
+        contact_id = serializer.validated_data['contact']
+
+        updated = Order.objects.filter(user=request.user, id=order_id).update(contact_id=contact_id, state='new')
+        if updated:
+            new_order.send(sender=self.__class__, user_id=request.user.id)
+            return Response({'Status': True})
+        return Response({'Status': False, 'Errors': 'Заказ не найден или не изменён'}, status=400)
+

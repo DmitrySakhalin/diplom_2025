@@ -84,3 +84,7 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = ('id', 'ordered_items', 'state', 'dt', 'total_price', 'contact')
         read_only_fields = ('id',)
+
+class OrderConfirmSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    contact = serializers.IntegerField()

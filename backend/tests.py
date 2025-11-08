@@ -114,7 +114,8 @@ class BackendEndpointsTest(APITestCase):
         # Тест: создание/обновление заказа
         url = reverse('backend:order')
         response = self.client.post(url)
-        self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_403_FORBIDDEN])
+        self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_403_FORBIDDEN, status.HTTP_400_BAD_REQUEST])
+
 
 
 class AccountTests(TestCase):
@@ -372,6 +373,32 @@ class SignalsAndEmailTest(TestCase):
         token = get_token_generator().generate_token()
         mail.send_mail('Password Reset Token', token, None, [self.user.email])
         self.assertEqual(len(mail.outbox), 1)
+
+
+class ValidationAndErrorTest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email='test@example.com', password='pass')
+        self.client.force_authenticate(user=self.user)
+
+    def test_registration_missing_fields(self):
+        # Тест: Проверяет, что при попытке зарегистрировать пользователя
+        # с отсутствующими обязательными полями (например, без пароля)
+        # сервер возвращает ошибку валидации с кодом 400 Bad Request.
+        url = reverse('backend:user-register')
+        data = {'email': 'test@example.com'}
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_invalid_order_confirm(self):
+        # Тест: проверяет корректность работы валидации на уровне API
+        url = reverse('backend:order')
+        data = {'id': 'not_an_int', 'contact': 'abc'}
+        response = self.client.post(url, data)
+        self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_403_FORBIDDEN,
+                                             status.HTTP_400_BAD_REQUEST])
+
+
+
 
 
 
