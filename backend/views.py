@@ -19,7 +19,8 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from requests import get
 from yaml import load as load_yaml, Loader
 
-from backend.models import Shop, Category, ProductInfo, Parameter, ProductParameter, Order, OrderItem, Contact, ConfirmEmailToken, Product
+from backend.models import (Shop, Category, ProductInfo, Parameter, ProductParameter, Order, OrderItem, Contact,
+                            ConfirmEmailToken, Product)
 from backend.serializers import (
     UserSerializer, CategorySerializer, ShopSerializer, ProductInfoSerializer,
     OrderItemSerializer, OrderSerializer, ContactSerializer, OrderConfirmSerializer
@@ -57,7 +58,7 @@ class RegisterAccount(APIView):
 
 
 class LoginAccount(APIView):
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         if not {'email', 'password'}.issubset(request.data):
             return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
         user = authenticate(request=request, username=request.data['email'], password=request.data['password'])
@@ -71,7 +72,7 @@ class PartnerUpdate(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         if request.user.type != 'shop':
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=403)
 
