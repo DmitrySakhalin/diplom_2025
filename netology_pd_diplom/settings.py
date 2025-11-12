@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'django_rest_passwordreset',
     'backend',
+    'social_django'
 ]
 
 MIDDLEWARE = [
@@ -213,3 +214,35 @@ LOGGING = {
         },
     },
 }
+
+AUTHENTICATION_BACKENDS = [
+    'social_core.backends.google.GoogleOAuth2',  # пример для Google OAuth2
+    'social_core.backends.vk.VKOAuth2',          # пример для ВКонтакте OAuth2
+    'django.contrib.auth.backends.ModelBackend', # обязательно оставить для стандартной аутентификации
+]
+
+# Ключи и секреты от социальных сетей (замените на свои реальные)
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '<ваш-client-id>'
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '<ваш-client-secret>'
+
+SOCIAL_AUTH_VK_OAUTH2_KEY = '<ваш-client-id>'
+SOCIAL_AUTH_VK_OAUTH2_SECRET = '<ваш-client-secret>'
+
+# URL для редиректов после успешной авторизации
+LOGIN_URL = '/user/login/'
+LOGIN_REDIRECT_URL = '/'  # куда редиректить после логина
+LOGOUT_REDIRECT_URL = '/'
+
+# Middleware для обработки исключений соцавторизации
+MIDDLEWARE += [
+    'social_django.middleware.SocialAuthExceptionMiddleware',
+]
+
+# Контекст-процессор для шаблонов, чтобы использовать данные соцавторизации
+TEMPLATES[0]['OPTIONS']['context_processors'] += [
+    'social_django.context_processors.backends',
+    'social_django.context_processors.login_redirect',
+]
+
+# Модель пользователя
+SOCIAL_AUTH_USER_MODEL = 'backend.User'
