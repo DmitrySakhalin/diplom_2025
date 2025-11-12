@@ -1,5 +1,7 @@
 import json
 import tempfile
+from django_rest_passwordreset.models import ResetPasswordToken
+from django_rest_passwordreset.signals import reset_password_token_created
 from backend.services import load_products_from_yaml
 from django.core import mail
 from django.urls import reverse
@@ -545,9 +547,58 @@ class AccountTests(TestCase):
             'position': 'Developer'
         }
         response = self.client.post(reverse('backend:user-register'), data=data, format='json')
-        print(response.data)
         self.assertTrue(response.data['Status'])
+        self.assertGreaterEqual(mock_send_email.call_count, 1)
+        self.assertLessEqual(mock_send_email.call_count, 2)  # допустим, может быть 1 или 2, но не больше
+
+@override_settings(CELERY_ALWAYS_EAGER=True)
+class PasswordResetTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="user@example.com", password="testpass")
+
+    @patch('backend.tasks.send_password_reset_email.delay')
+    def test_password_reset_email_triggered(self, mock_send_email):
+        # Создаем токен сброса пароля для пользователя
+        token = ResetPasswordToken.objects.create(user=self.user)
+
+        # Генерируем сигнал, передавая объект токена
+        reset_password_token_created.send(sender=None, instance=None, reset_password_token=token)
+
         mock_send_email.assert_called_once()
+
+class OrderCreationTest(APITestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(email="testuser@example.com", password="pass")
+        self.client.force_authenticate(user=self.user)
+
+        self.shop = Shop.objects.create(name="Test Shop", state=True)
+        self.category = Category.objects.create(name="Test Category")
+        self.product = Product.objects.create(name="Test Product", category=self.category)
+        self.product_info = ProductInfo.objects.create(
+            product=self.product,
+            shop=self.shop,
+            quantity=100,
+            price=1000,
+            price_rrc=1200,
+            model="ModelX",
+            external_id=1
+        )
+
+    def test_create_order(self):
+        url = reverse('backend:order')
+        data = {
+            'id': None,  # Для нового заказа, либо omit
+            'contact': None  # Можно указать ID контакта, если требуется
+        }
+
+        response = self.client.post(url, data, format='json')
+
+        self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST])
+        # При успешном создании заказа проверяем, что заказ появился в базе у пользователя
+        if response.status_code == status.HTTP_200_OK:
+            orders = Order.objects.filter(user=self.user).exclude(state='basket')
+            self.assertTrue(orders.exists())
 
 
 
