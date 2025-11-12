@@ -6,7 +6,7 @@ from django.urls import reverse
 from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from backend.models import Contact, ProductInfo, Order, OrderItem, Shop, Category, User, ConfirmEmailToken, Product, \
     Parameter, ProductParameter
 from rest_framework.authtoken.models import Token
@@ -192,13 +192,12 @@ class BackendEndpointsTest(APITestCase):
         self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_403_FORBIDDEN, status.HTTP_400_BAD_REQUEST])
 
 
-
+@override_settings(CELERY_ALWAYS_EAGER=True)
 class AccountTests(TestCase):
     def setUp(self):
         self.client = APIClient()
 
     def test_register_user(self):
-        # Тест: регистрация пользователя с полными данными
         data = {
             'first_name': 'Dmitry',
             'last_name': 'Pak',
@@ -529,6 +528,26 @@ class EdgeCasesAndRobustnessTest(APITestCase):
         items = [{'product_info': 'not_int', 'quantity': -1}]
         response = self.client.post(url, {'items': json.dumps(items)})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+@override_settings(CELERY_ALWAYS_EAGER=True)
+class AccountTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    @patch('backend.tasks.send_registration_email.delay')
+    def test_register_user(self, mock_send_email):
+        data = {
+            'first_name': 'Dmitry',
+            'last_name': 'Pack',
+            'email': 'dmitry-pack@example.com',
+            'password': 'ComplexPass123!',
+            'company': 'MyCompany',
+            'position': 'Developer'
+        }
+        response = self.client.post(reverse('backend:user-register'), data=data, format='json')
+        print(response.data)
+        self.assertTrue(response.data['Status'])
+        mock_send_email.assert_called_once()
 
 
 

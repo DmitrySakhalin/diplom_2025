@@ -18,6 +18,7 @@ from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError as DjangoValidationError
 from requests import get
 from yaml import load as load_yaml, Loader
+from backend.tasks import send_registration_email
 
 from backend.models import (Shop, Category, ProductInfo, Parameter, ProductParameter, Order, OrderItem, Contact,
                             ConfirmEmailToken, Product)
@@ -51,13 +52,22 @@ class RegisterAccount(APIView):
             user = serializer.save()
             user.set_password(request.data['password'])
             user.save()
-            new_user_registered.send(sender=self.__class__, user_id=user.id)
+
+            token, created = ConfirmEmailToken.objects.get_or_create(user=user)
+            token_key = token.key
+
+            send_registration_email.delay(user.id, token_key)
+
             return Response({'Status': True})
 
         return Response({'Status': False, 'Errors': serializer.errors})
 
 
 class LoginAccount(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+
     def post(self, request):
         if not {'email', 'password'}.issubset(request.data):
             return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
@@ -105,7 +115,7 @@ class PartnerUpdate(APIView):
             for file_name in yaml_files:
                 file_path = os.path.join(data_dir, file_name)
                 try:
-                    load_products_from_yaml(file_path, request.user)
+                    load_products_from_yaml_from_data(file_path, request.user)
                 except Exception as e:
                     return JsonResponse({'Status': False, 'Error': f'Ошибка обработки файла {file_name}: {str(e)}'}, status=400)
 
