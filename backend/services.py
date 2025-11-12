@@ -1,3 +1,4 @@
+# backend/services.py
 from yaml import load as load_yaml, Loader
 from backend.models import Shop, Category, Product, ProductInfo, Parameter, ProductParameter
 
@@ -5,7 +6,10 @@ from backend.models import Shop, Category, Product, ProductInfo, Parameter, Prod
 def load_products_from_yaml(file_path, user):
     with open(file_path, 'r', encoding='utf-8') as f:
         data = load_yaml(f, Loader=Loader)
+    load_products_from_yaml_from_data(data, user)
 
+
+def load_products_from_yaml_from_data(data, user):
     shop, _ = Shop.objects.get_or_create(name=data['shop'], user_id=user.id)
 
     for category in data.get('categories', []):
@@ -31,4 +35,3 @@ def load_products_from_yaml(file_path, user):
         for name, value in item.get('parameters', {}).items():
             param_obj, _ = Parameter.objects.get_or_create(name=name)
             ProductParameter.objects.create(product_info=product_info, parameter=param_obj, value=value)
-

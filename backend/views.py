@@ -26,7 +26,7 @@ from backend.serializers import (
     OrderItemSerializer, OrderSerializer, ContactSerializer, OrderConfirmSerializer
 )
 from backend.signals import new_user_registered, new_order
-from backend.services import load_products_from_yaml
+from backend.services import load_products_from_yaml_from_data
 
 
 class RegisterAccount(APIView):
@@ -403,4 +403,3 @@ class OrderView(APIView):
             new_order.send(sender=self.__class__, user_id=request.user.id)
             return Response({'Status': True})
         return Response({'Status': False, 'Errors': 'Заказ не найден или не изменён'}, status=400)
-
