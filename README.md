@@ -21,6 +21,9 @@
 6. (Опционально) Создайте суперпользователя для доступа в админку:```python manage.py createsuperuser``` 
 7. Запустите сервер разработки: ```python manage.py runserver```
 
+## ВНИМАНИЕ!!! 
+Для запуска tests.py переключить в settings.py ```CELERY_TASK_ALWAYS_EAGER = True```
+
 ---
 
 Документация API доступна по адресу: 

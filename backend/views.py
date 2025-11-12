@@ -10,6 +10,7 @@ from django.db.models import Q, Sum, F
 from rest_framework.authtoken.models import Token
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 from ujson import loads as load_json
 from django.http import JsonResponse
@@ -413,3 +414,9 @@ class OrderView(APIView):
             new_order.send(sender=self.__class__, user_id=request.user.id)
             return Response({'Status': True})
         return Response({'Status': False, 'Errors': 'Заказ не найден или не изменён'}, status=400)
+
+class ExampleView(APIView):
+    throttle_classes = [UserRateThrottle]
+
+    def get(self, request):
+        return Response({'status': 'request permitted'})
