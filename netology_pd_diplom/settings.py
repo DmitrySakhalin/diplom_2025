@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -217,16 +220,12 @@ LOGGING = {
 
 AUTHENTICATION_BACKENDS = [
     'social_core.backends.google.GoogleOAuth2',  # пример для Google OAuth2
-    'social_core.backends.vk.VKOAuth2',          # пример для ВКонтакте OAuth2
-    'django.contrib.auth.backends.ModelBackend', # обязательно оставить для стандартной аутентификации
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 # Ключи и секреты от социальных сетей (замените на свои реальные)
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = '<ваш-client-id>'
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = '<ваш-client-secret>'
-
-SOCIAL_AUTH_VK_OAUTH2_KEY = '<ваш-client-id>'
-SOCIAL_AUTH_VK_OAUTH2_SECRET = '<ваш-client-secret>'
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv('GOOGLE_OAUTH2_CLIENT_ID')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv('GOOGLE_OAUTH2_CLIENT_SECRET')
 
 # URL для редиректов после успешной авторизации
 LOGIN_URL = '/user/login/'
