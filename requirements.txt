@@ -16,6 +16,7 @@ cryptography==46.0.3
 defusedxml==0.7.1
 diff-match-patch==20241021
 Django==5.2.7
+django-baton==5.0.3
 django-import-export==4.3.13
 django-rest-passwordreset==1.5.0
 djangorestframework==3.16.1
