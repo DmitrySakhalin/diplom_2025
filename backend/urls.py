@@ -29,6 +29,5 @@ urlpatterns = [
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='backend:schema'), name='docs'),
     path('example/', ExampleView.as_view(), name='example'),
-    path('auth/', include('social_django.urls', namespace='social')),
 ]
 

@@ -571,3 +571,14 @@ class OrderCreationTest(APITestCase):
         if response.status_code == status.HTTP_200_OK:
             orders = Order.objects.filter(user=self.user).exclude(state='basket')
             self.assertTrue(orders.exists())
+
+
+class GoogleOAuthTest(APITestCase):
+    def test_google_oauth_redirect(self):
+        # URL начала авторизации через Google
+        url = reverse('social:begin', args=['google-oauth2'])
+        response = self.client.get(url)
+
+        # Проверяем, что сервер ответил редиректом на Google OAuth форму
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertIn('accounts.google.com', response.url)
