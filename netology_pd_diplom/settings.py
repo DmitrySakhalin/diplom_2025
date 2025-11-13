@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'social_django',
     'baton',
     'baton.autodiscover',
+    'cachalot'
 ]
 
 MIDDLEWARE = [
@@ -265,3 +266,15 @@ rollbar.init(
     root=ROLLBAR['root'],
     allow_logging_basic_config=False
 )
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+CACHALOT_ENABLED = True
+CACHALOT_CACHE = 'default'

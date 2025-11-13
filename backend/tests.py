@@ -1,10 +1,11 @@
 import json
 import tempfile
+import time
 from django.core import mail, cache
+from django.core.management import call_command
 from django.urls import reverse
 from django.test import TestCase, override_settings
 from django_rest_passwordreset.models import ResetPasswordToken
-from prompt_toolkit.key_binding.bindings.search import start_reverse_incremental_search
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from unittest.mock import patch
@@ -582,3 +583,34 @@ class GoogleOAuthTest(APITestCase):
         # Проверяем, что сервер ответил редиректом на Google OAuth форму
         self.assertEqual(response.status_code, status.HTTP_302_FOUND)
         self.assertIn('accounts.google.com', response.url)
+
+
+@override_settings(CACHALOT_ENABLED=True)
+class CachalotCacheTest(TestCase):
+    def setUp(self):
+        call_command('invalidate_cachalot')  # Очистка кеша
+        from backend.models import Shop, Category, Product
+        shop = Shop.objects.create(name="TestShop", state=True)
+        category = Category.objects.create(name="TestCategory")
+        product = Product.objects.create(name="TestProduct", category=category)
+        ProductInfo.objects.create(
+            product=product,
+            shop=shop,
+            quantity=10,
+            price=100,
+            price_rrc=120,
+            external_id=1,
+            model="ModelX"
+        )
+
+    def test_cachalot_caching(self):
+        start = time.time()
+        qs1 = list(ProductInfo.objects.filter(shop__state=True).select_related('shop', 'product__category'))
+        duration_uncached = time.time() - start
+
+        start = time.time()
+        qs2 = list(ProductInfo.objects.filter(shop__state=True).select_related('shop', 'product__category'))
+        duration_cached = time.time() - start
+
+        self.assertEqual(qs1, qs2)
+        self.assertTrue(duration_cached < duration_uncached, "Запрос с кэшем должен быть быстрее")
