@@ -1,3 +1,4 @@
+import rollbar
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -13,13 +14,14 @@ from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 from ujson import loads as load_json
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from distutils.util import strtobool
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError as DjangoValidationError
 from requests import get
 from yaml import load as load_yaml, Loader
 from backend.tasks import send_registration_email
+
 
 from backend.models import (Shop, Category, ProductInfo, Parameter, ProductParameter, Order, OrderItem, Contact,
                             ConfirmEmailToken, Product)
@@ -152,6 +154,8 @@ def load_products_from_yaml_from_data(data, user):
 
 
 class ConfirmAccount(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request: Request):
         if not {'email', 'token'}.issubset(request.data):
             return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'}, status=400)
@@ -420,3 +424,8 @@ class ExampleView(APIView):
 
     def get(self, request):
         return Response({'status': 'request permitted'})
+
+def test_rollbar(request):
+    a = None
+    a.hello()  # Искусственная ошибка, вызовет исключение
+    return HttpResponse("This message will not be reached.")

@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 
 import os
 from dotenv import load_dotenv
+import rollbar.contrib.django.middleware
+
 
 load_dotenv()
 
@@ -49,6 +51,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'rollbar.contrib.django.middleware.RollbarNotifierMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -56,6 +59,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'backend.rollbar_middleware.CustomRollbarNotifierMiddleware',
 ]
 
 APPEND_SLASH = True
@@ -245,5 +249,19 @@ TEMPLATES[0]['OPTIONS']['context_processors'] += [
     'social_django.context_processors.login_redirect',
 ]
 
-# Модель пользователя
+
 SOCIAL_AUTH_USER_MODEL = 'backend.User'
+
+ROLLBAR = {
+    'access_token': os.getenv('ROLLBAR_ACCESS_TOKEN'),
+    'environment': 'development' if DEBUG else 'production',
+    'code_version': '1.0',
+    'root': BASE_DIR,
+}
+
+rollbar.init(
+    ROLLBAR['access_token'],
+    ROLLBAR['environment'],
+    root=ROLLBAR['root'],
+    allow_logging_basic_config=False
+)
