@@ -13,12 +13,14 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
+
 from django.urls import path, include
+from baton.autodiscover import admin  # импорт админки из django-baton
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include(('backend.urls', 'backend'), namespace='backend')),
-    path('auth/', include('social_django.urls', namespace='social')),
-    path('', include('backend.urls')),
+    path('admin/', admin.site.urls),        # Батон админка
+    path('baton/', include('baton.urls')),  # Батон дополнительные url (по желанию)
+    path('api/', include(('backend.urls', 'backend'), namespace='backend')),  # API backend с namespace
+    path('auth/', include('social_django.urls', namespace='social')),        # Соцавторизация с namespace
+    path('', include('backend.urls')),      # Основные роуты приложения без namespace
 ]

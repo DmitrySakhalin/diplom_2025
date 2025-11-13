@@ -43,7 +43,9 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'django_rest_passwordreset',
     'backend',
-    'social_django'
+    'social_django',
+    'baton',
+    'baton.autodiscover',
 ]
 
 MIDDLEWARE = [

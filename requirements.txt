@@ -1,3 +1,4 @@
+baton
 amqp==5.3.1
 asgiref==3.10.0
 async-timeout==5.0.1
